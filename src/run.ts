@@ -81,13 +81,13 @@ export function run(
     const List: (so: ScreenSources) => ListSinks = makeCollection({
       channel: 'navigationStack',
       item: null as any, // FIXME: replace with new @cycle/state
-      ['itemFactory' as any]: (childState) => {
+      ['itemFactory' as any]: (childState: LayoutComponent) => {
         const component = screens[childState.name];
         if (!component) {
           console.error('no component for ', childState.name);
           throw new Error('no component for ' + childState.name);
         }
-        return function wrapComponent(sources) {
+        return function wrapComponent(sources: ScreenSources) {
           const innerSources = {
             ...sources,
             props: xs.of(childState.passProps),
@@ -95,10 +95,10 @@ export function run(
           return component(innerSources);
         };
       },
-      itemKey: (childState: LayoutComponent) => childState.id,
+      itemKey: (childState: LayoutComponent) => childState.id!,
       itemScope: (key) => key,
       collectSinks: (instances) => {
-        const sinks = {};
+        const sinks = {} as any;
         for (const channel of Object.keys(driversPlus)) {
           if (channel === 'screen') {
             sinks[channel] = instances.pickCombine(channel).map((itemVNodes) =>
@@ -133,7 +133,7 @@ export function run(
 
     const frameSources: FrameSources = {...sources, children: listSinks.screen};
     const frameSinks: Partial<ScreenSinks> = screens[Frame]
-      ? (isolate(screens[Frame], {
+      ? (isolate(screens[Frame]!, {
           '*': 'frame',
           navigationStack: identityLens,
         })(frameSources) as ScreenSinks)
@@ -141,7 +141,7 @@ export function run(
 
     const vdom$ = screens[Frame]
       ? xs
-          .combine(frameEnabled$, frameSinks.screen, unframedVDOM$)
+          .combine(frameEnabled$, frameSinks.screen!, unframedVDOM$)
           .map(([frameEnabled, framedVDOM, unframedVDOM]) =>
             frameEnabled ? framedVDOM : unframedVDOM,
           )
@@ -154,11 +154,11 @@ export function run(
         .merge(listSinks.navigation!, frameSinks.navigation ?? xs.never())
         .map((cmd: Command) => (prevStack) => {
           if (cmd.type === 'push') {
-            return [...prevStack, instantiateLayout(cmd.layout.component)];
+            return [...prevStack!, instantiateLayout(cmd.layout.component!)];
           } else if (cmd.type === 'pop') {
-            if (prevStack.length === 1) return prevStack;
-            prevStack.pop();
-            return [...prevStack];
+            if (prevStack!.length === 1) return prevStack;
+            prevStack!.pop();
+            return [...prevStack!];
           } else {
             console.warn('unknown nav command', cmd);
             return prevStack;
@@ -176,7 +176,7 @@ export function run(
   const engine = setupReusable(driversPlus);
 
   if (screens[GlobalScreen]) {
-    engine.run(withState(screens[GlobalScreen])(engine.sources));
+    engine.run(withState(screens[GlobalScreen]!)(engine.sources));
   }
   engine.run(withState(main, 'navigationStack')(engine.sources));
 

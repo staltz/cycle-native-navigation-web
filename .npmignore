@@ -1,4 +1,6 @@
 node_modules
 pnpm-lock.yaml
 package-lock.json
-lib
+src
+.gitignore
+tsconfig.json

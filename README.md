@@ -1,20 +1,17 @@
-# Cycle Native Navigation
+# Cycle Native Navigation Web
 
-Integrate your Cycle.js app with `react-native-navigation`, to handle navigation between multiple screens with native support. This library replaces `@cycle/run` and is not a driver, but provides some built-in drivers.
+Similar to and largely compatible with [cycle-native-navigation](https://github.com/staltz/cycle-native-navigation) but meant for use with `react-native-web` and Electron.
 
 ```
-npm install cycle-native-navigation
+npm install cycle-native-navigation-web
 ```
 
-Note: `react-native-navigation`, `react-native`, `react` are expected peer dependencies.
-
-- If using React Native 0.60 or higher, choose this library's version 6.0.0+
-- If using React Native 0.59 or lower, choose 5.2.0 or lower
+Note: `react-native-navigation`, `react-native`, `react-native-web`, `react` are expected peer dependencies.
 
 **Usage:**
 
 ```js
-import {run} from 'cycle-native-navigation';
+import {run} from 'cycle-native-navigation-web';
 
 const screens = {
   MainScreen: function main(sources) { /* Your Cycle.js component here... */ },
@@ -30,9 +27,5 @@ const layout = {
   // The initial app layout, see react-native-navigation docs about this
 };
 
-const defaultNavOptions = {
-  // Navigation options for every screen, see react-native-navigation docs
-};
-
-run(screens, drivers, layout, defaultNavOptions);
+run(screens, drivers, layout);
 ```

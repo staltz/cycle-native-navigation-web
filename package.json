@@ -17,13 +17,13 @@
     "@cycle/react-native": "2.x",
     "@cycle/run": "5.x",
     "@cycle/state": "1.x",
-    "xstream": "11.x",
     "react": ">=16.8.0",
-    "react-native": ">=0.60.0"
+    "react-native": ">=0.60.0",
+    "xstream": "11.x"
   },
   "peerDependencies": {
-    "react-native-web": ">=0.16.0",
-    "react-native-navigation": ">=4.0.0"
+    "react-native-navigation": ">=4.0.0",
+    "react-native-web": ">=0.16.0"
   },
   "devDependencies": {
     "@types/react": "^16.4.0",

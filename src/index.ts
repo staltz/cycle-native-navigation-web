@@ -17,6 +17,6 @@ export {
   ScreenSinks,
   Screens,
 } from './types';
-export {GlobalScreen} from './symbols';
+export {GlobalScreen, Frame} from './symbols';
 // export {NavSource} from './NavSource';
 export {run} from './run';

@@ -16,7 +16,7 @@
     "@cycle/react": "2.x",
     "@cycle/react-native": "2.x",
     "@cycle/run": "5.x",
-    "@cycle/state": "1.x",
+    "@cycle/state": ">=1.5",
     "react": ">=16.8.0",
     "react-native": ">=0.60.0",
     "xstream": "11.x"

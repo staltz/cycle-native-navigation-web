@@ -80,8 +80,7 @@ export function run(
 
     const List: (so: ScreenSources) => ListSinks = makeCollection({
       channel: 'navigationStack',
-      item: null as any, // FIXME: replace with new @cycle/state
-      ['itemFactory' as any]: (childState: LayoutComponent) => {
+      itemFactory: (childState: LayoutComponent) => {
         const component = screens[childState.name];
         if (!component) {
           console.error('no component for ', childState.name);

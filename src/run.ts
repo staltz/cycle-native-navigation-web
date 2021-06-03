@@ -6,7 +6,7 @@ import {Drivers, setupReusable} from '@cycle/run';
 import {createElement as $, ReactElement} from 'react';
 import isolate from '@cycle/isolate';
 import {View, StyleSheet, AppRegistry} from 'react-native';
-import {LayoutComponent} from 'react-native-navigation';
+import {Layout, LayoutComponent, LayoutSideMenu} from 'react-native-navigation';
 import {makeCollection, withState, Lens, Reducer} from '@cycle/state';
 import {
   Command,
@@ -38,11 +38,12 @@ const styles = StyleSheet.create({
   },
 });
 
-export function run(
-  screens: Screens,
-  drivers: Drivers,
-  initialLayout: LayoutComponent,
-) {
+function logAndThrow(err: string): never {
+  console.error(err);
+  throw new Error(err);
+}
+
+export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
   let _i = 1;
   function newID(label?: string) {
     return `${label ?? ''}${_i++}`;
@@ -83,8 +84,7 @@ export function run(
       itemFactory: (childState: LayoutComponent) => {
         const component = screens[childState.name];
         if (!component) {
-          console.error('no component for ', childState.name);
-          throw new Error('no component for ' + childState.name);
+          logAndThrow('no component for ' + childState.name);
         }
         return function wrapComponent(sources: ScreenSources) {
           const innerSources = {
@@ -147,21 +147,38 @@ export function run(
       : unframedVDOM$;
 
     const stackReducer$ = concat(
-      xs.of<Reducer<Stack>>((_prev) => [instantiateLayout(initialLayout)]),
+      xs.of<Reducer<Stack>>((_prev) => {
+        const initialComponent = initialLayout.stack?.children?.[0].component;
+        if (!initialComponent) {
+          logAndThrow('initialLayout only supports stack.children[0]');
+        }
+        return [instantiateLayout(initialComponent)];
+      }),
 
       xs
         .merge(listSinks.navigation!, frameSinks.navigation ?? xs.never())
         .map((cmd: Command) => (prevStack) => {
           if (cmd.type === 'push') {
             return [...prevStack!, instantiateLayout(cmd.layout.component!)];
-          } else if (cmd.type === 'pop') {
+          }
+
+          if (cmd.type === 'setStackRoot') {
+            const component =
+              cmd.layout.sideMenu?.center.stack?.children?.[0].component;
+            if (!component) {
+              logAndThrow('setStackRoot only supported for sideMenu center');
+            }
+            return [instantiateLayout(component)];
+          }
+
+          if (cmd.type === 'pop') {
             if (prevStack!.length === 1) return prevStack;
             prevStack!.pop();
             return [...prevStack!];
-          } else {
-            console.warn('unknown nav command', cmd);
-            return prevStack;
           }
+
+          console.warn('unknown nav command', cmd);
+          return prevStack;
         }),
     );
 

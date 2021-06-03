@@ -63,6 +63,7 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
       navigation: (x) => ({
         backPress: () => xs.never(),
         globalDidDisappear: () => xs.never(),
+        globalDidAppear: () => xs.never(),
       }),
     } as MainDrivers),
   };

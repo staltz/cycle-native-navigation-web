@@ -1,4 +1,4 @@
-import xs from 'xstream';
+import xs, {Stream} from 'xstream';
 import concat from 'xstream/extra/concat';
 import dropRepeats from 'xstream/extra/dropRepeats';
 import {makeReactNativeDriver} from '@cycle/react-native';
@@ -6,7 +6,7 @@ import {Drivers, setupReusable} from '@cycle/run';
 import {createElement as $, ReactElement} from 'react';
 import isolate from '@cycle/isolate';
 import {View, StyleSheet, AppRegistry} from 'react-native';
-import {Layout, LayoutComponent, LayoutSideMenu} from 'react-native-navigation';
+import {Layout, LayoutComponent} from 'react-native-navigation';
 import {makeCollection, withState, Lens, Reducer} from '@cycle/state';
 import {
   Command,
@@ -41,6 +41,10 @@ const styles = StyleSheet.create({
 function logAndThrow(err: string): never {
   console.error(err);
   throw new Error(err);
+}
+
+function neverComplete<T>(stream: Stream<T>): Stream<T> {
+  return xs.merge(stream, xs.never());
 }
 
 export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
@@ -90,7 +94,10 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
         return function wrapComponent(sources: ScreenSources) {
           const innerSources = {
             ...sources,
-            props: xs.of(childState.passProps),
+            props: xs
+              .of(childState.passProps)
+              .compose(neverComplete)
+              .remember(),
           };
           return component(innerSources);
         };
@@ -131,7 +138,10 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
       set: (_, x) => x,
     };
 
-    const frameSources: FrameSources = {...sources, children: listSinks.screen};
+    const frameSources: FrameSources = {
+      ...sources,
+      children: listSinks.screen,
+    };
     const frameSinks: Partial<ScreenSinks> = screens[Frame]
       ? (isolate(screens[Frame]!, {
           '*': 'frame',

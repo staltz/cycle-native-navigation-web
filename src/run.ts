@@ -3,10 +3,16 @@ import concat from 'xstream/extra/concat';
 import dropRepeats from 'xstream/extra/dropRepeats';
 import {makeReactNativeDriver} from '@cycle/react-native';
 import {Drivers, setupReusable} from '@cycle/run';
+import {InternalInstances} from '@cycle/state/lib/cjs/types';
 import {createElement as $, ReactElement} from 'react';
 import isolate from '@cycle/isolate';
 import {View, StyleSheet, AppRegistry} from 'react-native';
-import {Layout, LayoutComponent} from 'react-native-navigation';
+import {
+  ComponentDidAppearEvent,
+  ComponentDidDisappearEvent,
+  Layout,
+  LayoutComponent,
+} from 'react-native-navigation';
 import {makeCollection, withState, Lens, Reducer} from '@cycle/state';
 import {
   Command,
@@ -21,6 +27,7 @@ import {
   Screens,
 } from './types';
 import {Frame, GlobalScreen} from './symbols';
+import {NavSource} from './NavSource';
 
 const styles = StyleSheet.create({
   container: {
@@ -49,27 +56,22 @@ function neverComplete<T>(stream: Stream<T>): Stream<T> {
 
 export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
   let _i = 1;
-  function newID(label?: string) {
-    return `${label ?? ''}${_i++}`;
+  function componentNameToComponentId(name?: string) {
+    return `${name ?? ''}---${_i++}`;
+  }
+  function componentIdToComponentName(id: string) {
+    return id.split('---')[0];
   }
 
   function instantiateLayout(layout: LayoutComponent) {
-    return {...layout, id: newID(layout.name as string)};
+    return {...layout, id: componentNameToComponentId(layout.name as string)};
   }
 
-  const APP_KEY = 'cyclenativenavigationelectron';
+  const APP_KEY = 'cyclenativenavigationweb';
 
   const driversPlus: MainDrivers = {
     ...drivers,
-    ...({
-      screen: makeReactNativeDriver(APP_KEY),
-      // FIXME: creating NavSource will be a big deal, full of details
-      navigation: (x) => ({
-        backPress: () => xs.never(),
-        globalDidDisappear: () => xs.never(),
-        globalDidAppear: () => xs.never(),
-      }),
-    } as MainDrivers),
+    screen: makeReactNativeDriver(APP_KEY),
   };
 
   function main(sources: MainSources): MainSinks {
@@ -84,6 +86,11 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
       })
       .compose(dropRepeats());
 
+    const navSources = new Map<string, NavSource>();
+    const globalDidAppear$ = xs.create<ComponentDidAppearEvent>();
+    const globalDidDisappear$ = xs.create<ComponentDidDisappearEvent>();
+
+    const listItemChannels = Object.keys(driversPlus).concat('navigation');
     const List: (so: ScreenSources) => ListSinks = makeCollection({
       channel: 'navigationStack',
       itemFactory: (childState: LayoutComponent) => {
@@ -91,9 +98,12 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
         if (!component) {
           logAndThrow('no component for ' + childState.name);
         }
+        const navSource = new NavSource(globalDidAppear$, globalDidDisappear$);
+        navSources.set(childState.id!, navSource);
         return function wrapComponent(sources: ScreenSources) {
           const innerSources = {
             ...sources,
+            navigation: navSource,
             props: xs
               .of(childState.passProps)
               .compose(neverComplete)
@@ -105,14 +115,36 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
       itemKey: (childState: LayoutComponent) => childState.id!,
       itemScope: (key) => key,
       collectSinks: (instances) => {
+        const ist$ = instances['_instances$'] as Stream<InternalInstances<any>>;
+        const currentChildren = new Set<string>();
+        ist$.addListener({
+          next: ({dict}) => {
+            for (const id of dict.keys()) {
+              if (!currentChildren.has(id)) {
+                currentChildren.add(id);
+                const componentName = componentIdToComponentName(id);
+                globalDidAppear$._n({componentId: id, componentName});
+                navSources.get(id)?._didAppear._n(null);
+              }
+            }
+            for (const id of currentChildren.keys()) {
+              if (!dict.has(id)) {
+                currentChildren.delete(id);
+                const componentName = componentIdToComponentName(id);
+                globalDidDisappear$._n({componentId: id, componentName});
+                navSources.get(id)?._didDisappear._n(null);
+                navSources.delete(id);
+              }
+            }
+          },
+        });
         const sinks = {} as any;
-        for (const channel of Object.keys(driversPlus)) {
+        for (const channel of listItemChannels) {
           if (channel === 'screen') {
             sinks[channel] = instances.pickCombine(channel).map((itemVNodes) =>
               itemVNodes.map((vnode, i) => {
                 if (i === itemVNodes.length - 1) {
                   return $(View, {key: 'c' + i, style: styles.shown}, vnode);
-                  // return h(View, {key: 'c' + i, style: styles.shown}, [vnode]);
                 } else {
                   return $(View, {key: 'c' + i, style: styles.hidden}, vnode);
                 }
@@ -138,8 +170,10 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
       set: (_, x) => x,
     };
 
+    const frameNavSource = new NavSource(globalDidAppear$, globalDidDisappear$);
     const frameSources: FrameSources = {
       ...sources,
+      navigation: frameNavSource,
       children: listSinks.screen,
     };
     const frameSinks: Partial<ScreenSinks> = screens[Frame]
@@ -152,9 +186,19 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
     const vdom$ = screens[Frame]
       ? xs
           .combine(frameEnabled$, frameSinks.screen!, unframedVDOM$)
-          .map(([frameEnabled, framedVDOM, unframedVDOM]) =>
-            frameEnabled ? framedVDOM : unframedVDOM,
-          )
+          .map(([frameEnabled, framedVDOM, unframedVDOM]) => {
+            if (frameEnabled) {
+              setTimeout(() => {
+                frameNavSource._didAppear._n(null);
+              });
+              return framedVDOM;
+            } else {
+              setTimeout(() => {
+                frameNavSource._didDisappear._n(null);
+              });
+              return unframedVDOM;
+            }
+          })
       : unframedVDOM$;
 
     const stackReducer$ = concat(

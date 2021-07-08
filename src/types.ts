@@ -10,6 +10,7 @@ import {
 } from 'react-native-navigation';
 import {Driver} from '@cycle/run';
 import {Frame, GlobalScreen} from './symbols';
+import { NavSource } from './NavSource';
 
 export type PushCommand = {
   type: 'push';
@@ -93,18 +94,17 @@ export type Command =
 
 export interface MainDrivers {
   screen: Driver<Stream<any>, any | void>;
-  navigation: Driver<Stream<any>, any | void>;
+  // navigation: Driver<Stream<any>, any | void>;
   [name: string]: Driver<Stream<any>, any | void>;
 }
 
 export interface MainSources {
   navigationStack: StateSource<Stack>;
-  navigation: unknown; // FIXME: NavSource;
   screen: ReactSource;
 }
 
 export interface ScreenSources {
-  navigation: unknown; // FIXME: NavSource;
+  navigation?: NavSource;
   screen: ReactSource;
 }
 
@@ -119,14 +119,13 @@ export interface ListSinks {
 }
 
 export interface FrameSources extends MainSources {
+  navigation?: NavSource;
   children: Stream<Array<ReactElement>>;
 }
 
 export interface MainSinks {
   navigationStack: Stream<Reducer<Stack>>;
   screen: Stream<ReactElement<any>>;
-  // navigation?: Stream<Command>; // FIXME: ??
-  // navOptions?: Stream<any>; // FIXME: ??
 }
 
 export type Stack = Array<LayoutComponent>;

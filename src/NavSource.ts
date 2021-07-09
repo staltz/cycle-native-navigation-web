@@ -1,4 +1,4 @@
-import xs, {Stream} from 'xstream';
+import xs, {Stream, MemoryStream} from 'xstream';
 import {
   ComponentDidAppearEvent,
   ComponentDidDisappearEvent,
@@ -7,8 +7,8 @@ import {
 export class NavSource {
   // public readonly _topBar: Stream<string>;
   // public readonly _back: Stream<null>;
-  public readonly _didAppear: Stream<null>;
-  public readonly _didDisappear: Stream<null>;
+  public readonly _didAppear: MemoryStream<null>;
+  public readonly _didDisappear: MemoryStream<null>;
   public readonly _globalDidAppear: Stream<ComponentDidAppearEvent>;
   public readonly _globalDidDisappear: Stream<ComponentDidDisappearEvent>;
 
@@ -18,8 +18,8 @@ export class NavSource {
   ) {
     // this._topBar = xs.create<string>();
     // this._back = xs.create<null>();
-    this._didAppear = xs.create<null>();
-    this._didDisappear = xs.create<null>();
+    this._didAppear = xs.createWithMemory<null>();
+    this._didDisappear = xs.createWithMemory<null>();
     this._globalDidAppear = globalDidAppear;
     this._globalDidDisappear = globalDidDisappear;
   }

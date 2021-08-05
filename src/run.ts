@@ -241,6 +241,11 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
             return [...prevStack!];
           }
 
+          if (cmd.type === 'popToRoot') {
+            if (prevStack!.length > 0) return [prevStack![0]];
+            return [];
+          }
+
           console.warn('unknown nav command', cmd);
           return prevStack;
         }),

@@ -100,7 +100,7 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
         }
         const navSource = new NavSource(globalDidAppear$, globalDidDisappear$);
         navSources.set(childState.id!, navSource);
-        return function wrapComponent(sources: ScreenSources) {
+        return function wrapComponent(sources: ScreenSources): ScreenSinks {
           const innerSources = {
             ...sources,
             navigation: navSource,
@@ -111,6 +111,7 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
           };
           const innerSinks = component(innerSources);
           innerSinks['_passProps'] = childState.passProps;
+          return innerSinks
         };
       },
       itemKey: (childState: LayoutComponent) => childState.id!,

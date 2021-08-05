@@ -109,7 +109,8 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
               .compose(neverComplete)
               .remember(),
           };
-          return component(innerSources);
+          const innerSinks = component(innerSources);
+          innerSinks['_passProps'] = childState.passProps;
         };
       },
       itemKey: (childState: LayoutComponent) => childState.id!,
@@ -123,7 +124,12 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
               if (!currentChildren.has(id)) {
                 currentChildren.add(id);
                 const componentName = componentIdToComponentName(id);
-                globalDidAppear$._n({componentId: id, componentName});
+                const passProps = dict.get(id)['_passProps'];
+                globalDidAppear$._n({
+                  componentId: id,
+                  componentName,
+                  passProps,
+                });
                 navSources.get(id)?._didAppear._n(null);
               }
             }
@@ -150,6 +156,8 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
                 }
               }),
             );
+          } else if (channel === '_passProps') {
+            // ignore, it's not a stream
           } else {
             sinks[channel] = instances.pickMerge(channel);
           }

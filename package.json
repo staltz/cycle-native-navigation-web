@@ -1,6 +1,6 @@
 {
   "name": "cycle-native-navigation-web",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Cycle.js run() for react-native-navigation on react-native-web",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",

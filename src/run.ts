@@ -54,6 +54,33 @@ function neverComplete<T>(stream: Stream<T>): Stream<T> {
   return xs.merge(stream, xs.never());
 }
 
+interface MergeableSinks {
+  [s: string]: Stream<any> | undefined;
+}
+function mergeAllSinksExcept(
+  manySinks: Array<MergeableSinks>,
+  ignored: Array<string>,
+) {
+  const resultSinks = {} as MergeableSinks;
+  for (const [i, sinks] of manySinks.entries()) {
+    const subsequents = manySinks.slice(i + 1);
+    for (const channel of Object.keys(sinks)) {
+      if (ignored.includes(channel) || resultSinks[channel]) continue;
+
+      if (i === manySinks.length - 1) {
+        // last one, nothing to merge
+        resultSinks[channel] = sinks[channel]!;
+      } else {
+        resultSinks[channel] = xs.merge(
+          sinks[channel]!,
+          ...subsequents.map((zinkz) => zinkz[channel] ?? xs.never()),
+        );
+      }
+    }
+  }
+  return resultSinks;
+}
+
 export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
   let _i = 1;
   function componentNameToComponentId(name?: string) {
@@ -111,7 +138,7 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
           };
           const innerSinks = component(innerSources);
           innerSinks['_passProps'] = childState.passProps;
-          return innerSinks
+          return innerSinks;
         };
       },
       itemKey: (childState: LayoutComponent) => childState.id!,
@@ -192,6 +219,21 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
         })(frameSources) as ScreenSinks)
       : {};
 
+    const globalNavSource = new NavSource(
+      globalDidAppear$,
+      globalDidDisappear$,
+    );
+    const globalSources = {
+      ...sources,
+      navigation: globalNavSource,
+    };
+    const globalSinks: Omit<ScreenSinks, 'screen'> = screens[GlobalScreen]
+      ? isolate(screens[GlobalScreen]!, {
+          '*': 'globalScreen',
+          navigationStack: identityLens,
+        })(globalSources)
+      : {};
+
     const vdom$ = screens[Frame]
       ? xs
           .combine(frameEnabled$, frameSinks.screen!, unframedVDOM$)
@@ -220,7 +262,11 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
       }),
 
       xs
-        .merge(listSinks.navigation!, frameSinks.navigation ?? xs.never())
+        .merge(
+          listSinks.navigation!,
+          frameSinks.navigation ?? xs.never(),
+          globalSinks.navigation ?? xs.never(),
+        )
         .map((cmd: Command) => (prevStack) => {
           if (cmd.type === 'push') {
             return [...prevStack!, instantiateLayout(cmd.layout.component!)];
@@ -251,8 +297,13 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
         }),
     );
 
+    const otherSinks = mergeAllSinksExcept(
+      [listSinks, frameSinks, globalSinks],
+      ['screen', 'navigationStack', 'navigation'],
+    );
+
     return {
-      ...listSinks,
+      ...otherSinks,
       screen: vdom$,
       navigationStack: stackReducer$,
     };
@@ -260,9 +311,6 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
 
   const engine = setupReusable(driversPlus);
 
-  if (screens[GlobalScreen]) {
-    engine.run(withState(screens[GlobalScreen]!)(engine.sources));
-  }
   engine.run(withState(main, 'navigationStack')(engine.sources));
 
   AppRegistry.runApplication(APP_KEY, {

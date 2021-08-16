@@ -104,7 +104,7 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
   function main(sources: MainSources): MainSinks {
     const frameEnabled$ = sources.navigationStack.stream
       .map((stack) => {
-        if (stack.length <= 1) return true;
+        if (stack.length < 1) return true;
         const top = stack[stack.length - 1];
         if (!top.options) return true;
         if (!top.options.sideMenu) return true;
@@ -236,7 +236,11 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
 
     const vdom$ = screens[Frame]
       ? xs
-          .combine(frameEnabled$, frameSinks.screen!, unframedVDOM$)
+          .combine(
+            frameEnabled$,
+            frameSinks.screen!.startWith(null as any),
+            unframedVDOM$,
+          )
           .map(([frameEnabled, framedVDOM, unframedVDOM]) => {
             if (frameEnabled) {
               setTimeout(() => {

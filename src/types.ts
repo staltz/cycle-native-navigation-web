@@ -10,69 +10,69 @@ import {
 } from 'react-native-navigation';
 import {Driver} from '@cycle/run';
 import {Frame, GlobalScreen} from './symbols';
-import { NavSource } from './NavSource';
+import {NavSource} from './NavSource';
 
-export type PushCommand = {
+export interface PushCommand {
   type: 'push';
   id?: string;
   layout: Layout;
 };
 
-export type PopCommand = {
+export interface PopCommand {
   type: 'pop';
   id?: string;
   options: Options;
 };
 
-export type PopToCommand = {
+export interface PopToCommand {
   type: 'popTo';
   id?: string;
 };
 
-export type PopToRootCommand = {
+export interface PopToRootCommand {
   type: 'popToRoot';
   id?: string;
 };
 
-export type SetStackRootCommand = {
+export interface SetStackRootCommand {
   type: 'setStackRoot';
   id?: string;
   layout: Layout;
 };
 
-export type ShowOverlayCommand = {
+export interface ShowOverlayCommand {
   type: 'showOverlay';
   id?: string;
   layout: Layout;
 };
 
-export type DismissOverlayCommand = {
+export interface DismissOverlayCommand {
   type: 'dismissOverlay';
   id?: string;
 };
 
-export type ShowModalCommand = {
+export interface ShowModalCommand {
   type: 'showModal';
   id?: string;
   layout: Layout;
 };
 
-export type SetRootCommand = {
+export interface SetRootCommand {
   type: 'setRoot';
   layout: LayoutRoot;
 };
 
-export type DismissModalCommand = {
+export interface DismissModalCommand {
   type: 'dismissModal';
   id?: string;
 };
 
-export type DismissAllModalsCommand = {
+export interface DismissAllModalsCommand {
   type: 'dismissAllModals';
   id?: string;
 };
 
-export type MergeOptionsCommand = {
+export interface MergeOptionsCommand {
   type: 'mergeOptions';
   id?: string;
   opts: Options;

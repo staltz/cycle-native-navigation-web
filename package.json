@@ -4,6 +4,9 @@
   "description": "Cycle.js run() for react-native-navigation on react-native-web",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
+  "files": [
+    "lib/*"
+  ],
   "homepage": "https://github.com/staltz/cycle-native-navigation-web",
   "scripts": {
     "compile": "tsc",

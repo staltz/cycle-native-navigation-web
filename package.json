@@ -17,7 +17,7 @@
   "dependencies": {
     "@cycle/isolate": "5.x",
     "@cycle/react": "2.x",
-    "@cycle/react-native": "2.x",
+    "@cycle/react-native": "3.x",
     "@cycle/run": "5.x",
     "@cycle/state": ">=1.5",
     "react": ">=16.8.0",

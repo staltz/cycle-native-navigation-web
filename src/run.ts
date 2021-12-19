@@ -241,20 +241,20 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
             frameSinks.screen!.startWith(null as any),
             unframedVDOM$,
           )
-          .map(([frameEnabled, framedVDOM, unframedVDOM]) => {
-            if (frameEnabled) {
-              setTimeout(() => {
-                frameNavSource._didAppear._n(null);
-              });
-              return framedVDOM;
-            } else {
-              setTimeout(() => {
-                frameNavSource._didDisappear._n(null);
-              });
-              return unframedVDOM;
-            }
-          })
+          .map(([frameEnabled, framedVDOM, unframedVDOM]) =>
+            frameEnabled ? framedVDOM : unframedVDOM,
+          )
       : unframedVDOM$;
+
+    frameEnabled$.addListener({
+      next: (frameEnabled) => {
+        if (frameEnabled) {
+          frameNavSource._didAppear._n(null);
+        } else {
+          frameNavSource._didDisappear._n(null);
+        }
+      },
+    });
 
     const stackReducer$ = concat(
       xs.of<Reducer<Stack>>((_prev) => {

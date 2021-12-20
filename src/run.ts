@@ -45,6 +45,9 @@ const styles = StyleSheet.create({
   },
 });
 
+const SHOWN = Symbol.for('cnnw-shown');
+const HIDDEN = Symbol.for('cnnw-hidden');
+
 function logAndThrow(err: string): never {
   console.error(err);
   throw new Error(err);
@@ -178,9 +181,23 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
             sinks[channel] = instances.pickCombine(channel).map((itemVNodes) =>
               itemVNodes.map((vnode, i) => {
                 if (i === itemVNodes.length - 1) {
-                  return $(View, {key: 'c' + i, style: styles.shown}, vnode);
+                  if (!vnode[SHOWN]) {
+                    vnode[SHOWN] = $(
+                      View,
+                      {key: 'c' + i, style: styles.shown},
+                      vnode,
+                    );
+                  }
+                  return vnode[SHOWN];
                 } else {
-                  return $(View, {key: 'c' + i, style: styles.hidden}, vnode);
+                  if (!vnode[HIDDEN]) {
+                    vnode[HIDDEN] = $(
+                      View,
+                      {key: 'c' + i, style: styles.hidden},
+                      vnode,
+                    );
+                  }
+                  return vnode[HIDDEN];
                 }
               }),
             );

@@ -45,8 +45,8 @@ const styles = StyleSheet.create({
   },
 });
 
-const SHOWN = Symbol.for('cnnw-shown');
-const HIDDEN = Symbol.for('cnnw-hidden');
+const shownWM = new WeakMap();
+const hiddenWM = new WeakMap();
 
 function logAndThrow(err: string): never {
   console.error(err);
@@ -181,23 +181,21 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
             sinks[channel] = instances.pickCombine(channel).map((itemVNodes) =>
               itemVNodes.map((vnode, i) => {
                 if (i === itemVNodes.length - 1) {
-                  if (!vnode[SHOWN]) {
-                    vnode[SHOWN] = $(
-                      View,
-                      {key: 'c' + i, style: styles.shown},
+                  if (!shownWM.has(vnode)) {
+                    shownWM.set(
                       vnode,
+                      $(View, {key: 'c' + i, style: styles.shown}, vnode),
                     );
                   }
-                  return vnode[SHOWN];
+                  return shownWM.get(vnode)!;
                 } else {
-                  if (!vnode[HIDDEN]) {
-                    vnode[HIDDEN] = $(
-                      View,
-                      {key: 'c' + i, style: styles.hidden},
+                  if (!hiddenWM.has(vnode)) {
+                    hiddenWM.set(
                       vnode,
+                      $(View, {key: 'c' + i, style: styles.hidden}, vnode),
                     );
                   }
-                  return vnode[HIDDEN];
+                  return hiddenWM.get(vnode)!;
                 }
               }),
             );

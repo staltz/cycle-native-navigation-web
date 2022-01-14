@@ -24,6 +24,7 @@ import {
   ScreenSinks,
   ScreenSources,
   ListSinks,
+  LayoutInstance,
   Screens,
 } from './types';
 import {Frame, GlobalScreen} from './symbols';
@@ -93,7 +94,7 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
     return id.split('---')[0];
   }
 
-  function instantiateLayout(layout: LayoutComponent) {
+  function instantiateLayout(layout: LayoutComponent): LayoutInstance {
     return {...layout, id: componentNameToComponentId(layout.name as string)};
   }
 
@@ -119,6 +120,23 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
     const navSources = new Map<string, NavSource>();
     const globalDidAppear$ = xs.create<ComponentDidAppearEvent>();
     const globalDidDisappear$ = xs.create<ComponentDidDisappearEvent>();
+    const globalBack$ = xs.create<unknown>({
+      start(listener) {
+        (this as any).fn = () => {
+          listener.next(null);
+        };
+        window.addEventListener(
+          'cyclenativenavigationweb-back',
+          (this as any).fn,
+        );
+      },
+      stop() {
+        window.removeEventListener(
+          'cyclenativenavigationweb-back',
+          (this as any).fn,
+        );
+      },
+    });
 
     const listItemChannels = Object.keys(driversPlus).concat('navigation');
     const List: (so: ScreenSources) => ListSinks = makeCollection({
@@ -128,7 +146,11 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
         if (!component) {
           logAndThrow('no component for ' + childState.name);
         }
-        const navSource = new NavSource(globalDidAppear$, globalDidDisappear$);
+        const navSource = new NavSource(
+          globalDidAppear$,
+          globalDidDisappear$,
+          globalBack$,
+        );
         navSources.set(childState.id!, navSource);
         return function wrapComponent(sources: ScreenSources): ScreenSinks {
           const innerSources = {
@@ -221,7 +243,11 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
       set: (_, x) => x,
     };
 
-    const frameNavSource = new NavSource(globalDidAppear$, globalDidDisappear$);
+    const frameNavSource = new NavSource(
+      globalDidAppear$,
+      globalDidDisappear$,
+      globalBack$,
+    );
     const frameSources: FrameSources = {
       ...sources,
       navigation: frameNavSource,
@@ -237,6 +263,7 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
     const globalNavSource = new NavSource(
       globalDidAppear$,
       globalDidDisappear$,
+      globalBack$,
     );
     const globalSources = {
       ...sources,
@@ -271,6 +298,21 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
       },
     });
 
+    function updateIsTops(stack: Stack) {
+      if (stack.length === 1) {
+        const navSource = navSources.get(stack[0].id!);
+        if (navSource) navSource._isTop = true;
+      } else {
+        for (const item of stack) {
+          const navSource = navSources.get(item.id);
+          if (navSource) navSource._isTop = false;
+        }
+        const top = stack[stack.length - 1];
+        const topNavSource = navSources.get(top.id);
+        if (topNavSource) topNavSource._isTop = true;
+      }
+    }
+
     const stackReducer$ = concat(
       xs.of<Reducer<Stack>>((_prev) => {
         const initialComponent = initialLayout.stack?.children?.[0].component;
@@ -288,7 +330,12 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
         )
         .map((cmd: Command) => (prevStack) => {
           if (cmd.type === 'push') {
-            return [...prevStack!, instantiateLayout(cmd.layout.component!)];
+            const nextStack = [
+              ...prevStack!,
+              instantiateLayout(cmd.layout.component!),
+            ];
+            updateIsTops(nextStack);
+            return nextStack;
           }
 
           if (cmd.type === 'setStackRoot') {
@@ -297,17 +344,25 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
             if (!component) {
               logAndThrow('setStackRoot only supported for sideMenu center');
             }
-            return [instantiateLayout(component)];
+            const nextStack = [instantiateLayout(component)];
+            updateIsTops(nextStack);
+            return nextStack;
           }
 
           if (cmd.type === 'pop') {
             if (prevStack!.length === 1) return prevStack;
             prevStack!.pop();
-            return [...prevStack!];
+            const nextStack = [...prevStack!];
+            updateIsTops(nextStack);
+            return nextStack;
           }
 
           if (cmd.type === 'popToRoot') {
-            if (prevStack!.length > 0) return [prevStack![0]];
+            if (prevStack!.length > 0) {
+              const nextStack = [prevStack![0]];
+              updateIsTops(nextStack);
+              return nextStack;
+            }
             return [];
           }
 

@@ -11,10 +11,13 @@ export class NavSource {
   public readonly _didDisappear: MemoryStream<null>;
   public readonly _globalDidAppear: Stream<ComponentDidAppearEvent>;
   public readonly _globalDidDisappear: Stream<ComponentDidDisappearEvent>;
+  public readonly _globalBack: Stream<unknown>;
+  public _isTop: boolean;
 
   constructor(
     globalDidAppear: Stream<ComponentDidAppearEvent>,
     globalDidDisappear: Stream<ComponentDidDisappearEvent>,
+    globalBack: Stream<unknown>,
   ) {
     // this._topBar = xs.create<string>();
     // this._back = xs.create<null>();
@@ -22,6 +25,8 @@ export class NavSource {
     this._didDisappear = xs.createWithMemory<null>();
     this._globalDidAppear = globalDidAppear;
     this._globalDidDisappear = globalDidDisappear;
+    this._globalBack = globalBack;
+    this._isTop = true;
   }
 
   // TODO:
@@ -31,7 +36,7 @@ export class NavSource {
   // }
 
   public backPress() {
-    return xs.never(); // TODO: this._back;
+    return this._globalBack.filter(() => this._isTop);
   }
 
   public didAppear() {

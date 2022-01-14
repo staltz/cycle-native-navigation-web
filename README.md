@@ -14,9 +14,15 @@ Note: `react-native-navigation`, `react-native`, `react-native-web`, `react` are
 import {run} from 'cycle-native-navigation-web';
 
 const screens = {
-  MainScreen: function main(sources) { /* Your Cycle.js component here... */ },
-  ListScreen: function list(sources) { /* ... */ },
-  HelpScreen: function help(sources) { /* ... */ },
+  MainScreen: function main(sources) {
+    /* Your Cycle.js component here... */
+  },
+  ListScreen: function list(sources) {
+    /* ... */
+  },
+  HelpScreen: function help(sources) {
+    /* ... */
+  },
 };
 
 const drivers = {
@@ -29,3 +35,5 @@ const layout = {
 
 run(screens, drivers, layout);
 ```
+
+To support `navSource.backPress()`, monitor the browser `history` or the Electron navigation state, and emit the event `cyclenativenavigationweb-back` on the `window`.

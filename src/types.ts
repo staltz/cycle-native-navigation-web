@@ -16,67 +16,67 @@ export interface PushCommand {
   type: 'push';
   id?: string;
   layout: Layout;
-};
+}
 
 export interface PopCommand {
   type: 'pop';
   id?: string;
   options: Options;
-};
+}
 
 export interface PopToCommand {
   type: 'popTo';
   id?: string;
-};
+}
 
 export interface PopToRootCommand {
   type: 'popToRoot';
   id?: string;
-};
+}
 
 export interface SetStackRootCommand {
   type: 'setStackRoot';
   id?: string;
   layout: Layout;
-};
+}
 
 export interface ShowOverlayCommand {
   type: 'showOverlay';
   id?: string;
   layout: Layout;
-};
+}
 
 export interface DismissOverlayCommand {
   type: 'dismissOverlay';
   id?: string;
-};
+}
 
 export interface ShowModalCommand {
   type: 'showModal';
   id?: string;
   layout: Layout;
-};
+}
 
 export interface SetRootCommand {
   type: 'setRoot';
   layout: LayoutRoot;
-};
+}
 
 export interface DismissModalCommand {
   type: 'dismissModal';
   id?: string;
-};
+}
 
 export interface DismissAllModalsCommand {
   type: 'dismissAllModals';
   id?: string;
-};
+}
 
 export interface MergeOptionsCommand {
   type: 'mergeOptions';
   id?: string;
   opts: Options;
-};
+}
 
 export type Command =
   | PushCommand
@@ -128,7 +128,11 @@ export interface MainSinks {
   screen: Stream<ReactElement<any>>;
 }
 
-export type Stack = Array<LayoutComponent>;
+export interface LayoutInstance extends LayoutComponent {
+  id: string;
+}
+
+export type Stack = Array<LayoutInstance>;
 
 export interface Screens {
   [screenId: string]: (so: any) => any;

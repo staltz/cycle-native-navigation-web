@@ -339,10 +339,22 @@ export function run(screens: Screens, drivers: Drivers, initialLayout: Layout) {
           }
 
           if (cmd.type === 'setStackRoot') {
-            const component =
-              cmd.layout.sideMenu?.center.stack?.children?.[0].component;
+            let stack = cmd.layout.sideMenu?.center.stack;
+            if (!stack) {
+              stack = cmd.layout.stack;
+            }
+            if (!stack) {
+              logAndThrow(
+                'setStackRoot could not find stack from ' +
+                  JSON.stringify(cmd.layout),
+              );
+            }
+            const component = stack.children?.[0].component;
             if (!component) {
-              logAndThrow('setStackRoot only supported for sideMenu center');
+              logAndThrow(
+                'setStackRoot could not find component from ' +
+                  JSON.stringify(stack.children),
+              );
             }
             const nextStack = [instantiateLayout(component)];
             updateIsTops(nextStack);
